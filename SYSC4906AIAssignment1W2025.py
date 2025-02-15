@@ -171,11 +171,10 @@ def get_smart_move(c_loc, c_off, factor):
     """
     Returns the ideal move based on the factor.
     
-    Sanya TODO: For each state in scenario C in run_minimax, create proper factors
+    Sanya TODO: For each state in scenario C in run_minimax, fine tune factors
     Sanya TODO: Choose a good multiplier for the factors (ie beta)
-    Sanya TODO: Factor in alpha - Higher values of alpha should have different values of beta
     """
-    beta = 5
+    beta = 0 # A beta of zero is just returning the optimal move, ignoring impact of the states
     adjusted_local_cost = c_loc + beta*factor
     if (adjusted_local_cost < c_off):
         return "local", c_loc
@@ -207,7 +206,7 @@ def run_minimax(tasks):
             # Scenario a: There are no valid moves.
             print("There are no valid moves :(")
         elif (len(feasible) == 1):
-            # Scenario b: There is only one valid move.
+            # Scenario b: There is only one valid move. Includes scenarios s4, s5, s6, s8
             if (feasible[0] == "local"):
                 print("There was only 1 option. Performing task locally.")
                 chosen, step_cost = "local", c_loc
@@ -222,43 +221,35 @@ def run_minimax(tasks):
             # A negative means that based on the current state, local would be a good next move
             # Zero means no preference - Choose optimally
             if (last4moves == ["local", "local", "offload", "offload"]):
-                print("Scenario: local, local, offload, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
+                # Scenario c.s1 - Choosing offload would make the next move forced to be local
+                print("Scenario: local, local, offload, offload - factor = -1")
+                chosen, step_cost = get_smart_move(c_loc, c_off, -1)
             elif (last4moves == ["local", "offload", "local", "offload"]):
-                print("Scenario: local, offload, local, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
+                # Scenario c.s2 - Choosing local would make the next move forced to be offload
+                print("Scenario: local, offload, local, offload - factor = 1")
+                chosen, step_cost = get_smart_move(c_loc, c_off, 1)
             elif (last4moves == ["local", "offload", "offload", "local"]):
-                print("Scenario: local, offload, offload, local - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-            elif (last4moves == ["local", "offload", "offload", "offload"]):
-                print("Scenario: local, offload, offload, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-
-            elif (last4moves == ["offload", "local", "local", "offload"]):
-                print("Scenario: offload, local, local, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-            elif (last4moves == ["offload", "local", "offload", "local"]):
-                print("Scenario: offload, local, offload, local - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
+                # Scenario c.s3 - Choosing local would make the next two moves forced to be offload... that seems kind of bad
+                print("Scenario: local, offload, offload, local - factor = 2")
+                chosen, step_cost = get_smart_move(c_loc, c_off, 2)
             elif (last4moves == ["offload", "local", "offload", "offload"]):
-                print("Scenario: offload, local, offload, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-            elif (last4moves == ["offload", "offload", "local", "local"]):
-                print("Scenario: offload, offload, local, local - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-
+                # Scenario c.s7 - Choosing offload would force the move after that to be local
+                print("Scenario: offload, local, offload, offload - factor = -1")
+                chosen, step_cost = get_smart_move(c_loc, c_off, -1)
             elif (last4moves == ["offload", "offload", "local", "offload"]):
-                print("Scenario: offload, offload, local, offload - factor = 0")
-                chosen, step_cost = get_smart_move(c_loc, c_off, 0)
+                # Scenario c.s9 - Choosing local would force the next choice to be offload
+                print("Scenario: offload, offload, local, offload - factor = 1")
+                chosen, step_cost = get_smart_move(c_loc, c_off, 1)
             elif (last4moves == ["offload", "offload", "offload", "local"]):
+                # Scenario c.s10 - Choosing local would force the next to moves to be offload. On the other hand choosing offload would force the next move to be local. Not really sure which is better.
                 print("Scenario: offload, offload, offload, local - factor = 0")
                 chosen, step_cost = get_smart_move(c_loc, c_off, 0)
-                
             elif ("none" in last4moves):
-                print("Scenario: First four moves - Should pick optimally - factor = 0")
+                print("Scenario: This is one of the first four moves. Or one of the last four moves was impossible and we had to skip. Pick optimally - factor = 0")
                 chosen, step_cost = get_smart_move(c_loc, c_off, 0)                
             else:
-                print("ERROR - Underfined state. Last 4 moves: ", last4moves)
+                print("ERROR - Undefined state. Last 4 moves: ", last4moves)
+                exit(1)
             
         print("The chosen move was", chosen, "\n")
         moves.append(chosen)
@@ -266,6 +257,12 @@ def run_minimax(tasks):
             
         last4moves.pop(0) # Remove the oldest move
         last4moves.append(chosen)
+    
+    no_moves = 0;
+    for move in moves:
+        if move == "none":
+            no_moves += 1
+    print("DEBUG: The number of moves wasted is", no_moves)
     
     # Returns 2 values: moves, total_cost
     return moves, total_cost
