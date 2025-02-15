@@ -174,7 +174,7 @@ def get_smart_move(c_loc, c_off, factor):
     Sanya TODO: For each state in scenario C in run_minimax, fine tune factors
     Sanya TODO: Choose a good multiplier for the factors (ie beta)
     """
-    beta = 0 # A beta of zero is just returning the optimal move, ignoring impact of the states
+    beta = 1 # A beta of zero is just returning the optimal move, ignoring impact of the states
     adjusted_local_cost = c_loc + beta*factor
     if (adjusted_local_cost < c_off):
         return "local", c_loc
